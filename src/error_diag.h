@@ -33,19 +33,19 @@ class ErrorInstance;
 // This describes the components of the system.
 class DeviceTree {
  public:
-  explicit DeviceTree(string name);
+  explicit DeviceTree(std::string name);
   ~DeviceTree();
 
   // Atomically find arbitrary device in subtree.
-  DeviceTree *FindInSubTree(string name);
+  DeviceTree *FindInSubTree(std::string name);
   // Find or add named device.
-  DeviceTree *FindOrAddDevice(string name);
+  DeviceTree *FindOrAddDevice(std::string name);
   // Atomically add sub device.
-  void InsertSubDevice(string name);
+  void InsertSubDevice(std::string name);
   // Returns parent device.
   DeviceTree *GetParent() { return parent_; }
   // Pretty prints device tree.
-  void PrettyPrint(string spacer = " ");
+  void PrettyPrint(std::string spacer = " ");
   // Atomically add error instance to device.
   void AddErrorInstance(ErrorInstance *error_instance);
   // Returns true of device is known to be bad.
@@ -55,12 +55,12 @@ class DeviceTree {
 
  private:
   // Unlocked version of FindInSubTree.
-  DeviceTree *UnlockedFindInSubTree(string name);
+  DeviceTree *UnlockedFindInSubTree(std::string name);
 
-  std::map<string, DeviceTree*> subdevices_;    // Map of sub-devices.
+  std::map<std::string, DeviceTree*> subdevices_;    // Map of sub-devices.
   std::list<ErrorInstance*> errors_;            // Log of errors.
   DeviceTree *parent_;                          // Pointer to parent device.
-  string name_;                                 // Device name.
+  std::string name_;                                 // Device name.
   pthread_mutex_t device_tree_mutex_;           // Mutex protecting device tree.
 };
 
@@ -128,23 +128,27 @@ class HDDSectorTagErrorInstance: public ErrorInstance {
 class ErrorDiag {
  public:
   ErrorDiag();
+  ErrorDiag(const ErrorDiag&) = delete;
+  ErrorDiag(ErrorDiag&&) = delete;
   virtual ~ErrorDiag();
+  ErrorDiag& operator=(const ErrorDiag&) = delete;
+  ErrorDiag& operator=(ErrorDiag&&) = delete;
 
   // Add info about a CECC.
-  virtual int AddCeccError(string dimm_string);
+  virtual int AddCeccError(std::string dimm_string);
 
   // Add info about a UECC.
-  virtual int AddUeccError(string dimm_string);
+  virtual int AddUeccError(std::string dimm_string);
 
   // Add info about a miscompare.
-  virtual int AddMiscompareError(string dimm_string, uint64 addr, int count);
+  virtual int AddMiscompareError(std::string dimm_string, uint64 addr, int count);
 
   // Add info about a miscompare from a drive.
-  virtual int AddHDDMiscompareError(string devicename, int block, int offset,
+  virtual int AddHDDMiscompareError(std::string devicename, int block, int offset,
                             void *src_addr, void *dst_addr);
 
   // Add info about a sector tag miscompare from a drive.
-  virtual int AddHDDSectorTagError(string devicename, int block, int offset,
+  virtual int AddHDDSectorTagError(std::string devicename, int block, int offset,
                            int sector, void *src_addr, void *dst_addr);
 
   // Set platform specific handle and initialize device tree.
@@ -155,13 +159,10 @@ class ErrorDiag {
   virtual bool InitializeDeviceTree();
 
   // Utility Function to translate a virtual address to DIMM number.
-  string AddressToDimmString(OsLayer *os, void *addr, int offset);
+  std::string AddressToDimmString(OsLayer *os, void *addr, int offset);
 
   DeviceTree *system_tree_root_;  // System device tree.
   OsLayer *os_;                   // Platform handle.
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(ErrorDiag);
 };
 
 #endif  // STRESSAPPTEST_ERROR_DIAG_H_

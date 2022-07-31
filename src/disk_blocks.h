@@ -38,7 +38,11 @@ class Pattern;
 class BlockData {
  public:
   BlockData();
+  BlockData(const BlockData&) = delete;
+  BlockData(BlockData&&) = delete;
   ~BlockData();
+  BlockData& operator=(const BlockData&) = delete;
+  BlockData& operator=(BlockData&&) = delete;
 
   // These are reference counters used to control how many
   // threads currently have a copy of this particular block.
@@ -66,7 +70,6 @@ class BlockData {
   bool initialized_;  // Flag indicating the block was written on disk
   Pattern *pattern_;
   mutable pthread_mutex_t data_mutex_;
-  DISALLOW_COPY_AND_ASSIGN(BlockData);
 };
 
 // A thread-safe table used to store block data and control access
@@ -75,7 +78,11 @@ class BlockData {
 class DiskBlockTable {
  public:
   DiskBlockTable();
+  DiskBlockTable(const DiskBlockTable&) = delete;
+  DiskBlockTable(DiskBlockTable&&) = delete;
   virtual ~DiskBlockTable();
+  DiskBlockTable& operator=(const DiskBlockTable&) = delete;
+  DiskBlockTable& operator=(DiskBlockTable&&) = delete;
 
   // Returns number of elements stored on table.
   uint64 Size();
@@ -85,7 +92,7 @@ class DiskBlockTable {
   void SetParameters(int sector_size, int write_block_size,
                      int64 device_sectors,
                      int64 segment_size,
-                     const string& device_name);
+                     const std::string& device_name);
 
   // During the regular execution, there will be 2 types of threads:
   // - Write thread:  gets a large number of blocks using GetUnusedBlock,
@@ -131,8 +138,8 @@ class DiskBlockTable {
     BlockData *block;
     int pos;
   };
-  typedef map<int64, StorageData*> AddrToBlockMap;
-  typedef vector<int64> PosToAddrVector;
+  typedef std::map<int64, StorageData*> AddrToBlockMap;
+  typedef std::vector<int64> PosToAddrVector;
 
   // Inserts block in structure, used in tests and by other methods.
   void InsertOnStructure(BlockData *block);
@@ -147,7 +154,7 @@ class DiskBlockTable {
 
   int sector_size() const { return sector_size_; }
   int write_block_size() const { return write_block_size_; }
-  const string& device_name() const { return device_name_; }
+  const std::string& device_name() const { return device_name_; }
   int64 device_sectors() const { return device_sectors_; }
   int64 segment_size() const { return segment_size_; }
 
@@ -161,14 +168,13 @@ class DiskBlockTable {
   // Configuration parameters for block selection
   int sector_size_;  // Sector size, in bytes
   int write_block_size_;  // Block size, in bytes
-  string device_name_;  // Device name
+  std::string device_name_;  // Device name
   int64 device_sectors_;  // Number of sectors in device
   int64 segment_size_;  // Segment size in bytes
   uint64 size_;  // Number of elements on table
   pthread_mutex_t data_mutex_;
   pthread_cond_t data_condition_;
   pthread_mutex_t parameter_mutex_;
-  DISALLOW_COPY_AND_ASSIGN(DiskBlockTable);
 };
 
 #endif  // STRESSAPPTEST_BLOCKS_H_

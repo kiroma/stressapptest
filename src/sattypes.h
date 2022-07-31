@@ -17,36 +17,35 @@
 
 #include <arpa/inet.h>
 #include <sched.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/types.h>
-#include <time.h>
-#include <string.h>
+#include <ctime>
+#include <cstring>
 #include <algorithm>
 #include <string>
 
-#ifdef HAVE_CONFIG_H  // Built using autoconf
-#ifdef __ANDROID__
-#include "stressapptest_config_android.h"  // NOLINT
-#else
-#include "stressapptest_config.h"  // NOLINT
-using namespace __gnu_cxx;  //NOLINT
-#endif  // __ANDROID__
-using namespace std;
+#ifdef __x86_64__
+#define STRESSAPPTEST_CPU_X86_64
+#endif
+#ifdef __i386__
+#define STRESSAPPTEST_CPU_I686
+#endif
+#ifdef __USE_XOPEN2K
+#define HAVE_PTHREAD_BARRIERS
+#endif
+#if _POSIX_C_SOURCE >= 200112L
+#define HAVE_POSIX_MEMALIGN
+#endif
 
-typedef signed long long   int64;
-typedef signed int         int32;
-typedef signed short int   int16;
-typedef signed char        int8;
-
-typedef unsigned long long uint64;
-typedef unsigned int       uint32;
-typedef unsigned short     uint16;
-typedef unsigned char      uint8;
-
-#define DISALLOW_COPY_AND_ASSIGN(TypeName)        \
-  TypeName(const TypeName&);                      \
-  void operator=(const TypeName&)
+using uint64 = std::uint64_t;
+using int64 = std::int64_t;
+using uint32 = std::uint32_t;
+using int32 = std::int32_t;
+using uint16 = std::uint16_t;
+using int16 = std::int16_t;
+using uint8 = std::uint8_t;
+using int8 = std::int8_t;
 
 inline const char* Timestamp() {
   return STRESSAPPTEST_TIMESTAMP;
@@ -57,10 +56,7 @@ inline const char* BuildChangelist() {
 }
 
 static const bool kOpenSource = true;
-#else  // !HAVE_CONFIG_H
-static const bool kOpenSource = false;
-  #include "googlesattypes.h"  // NOLINT
-#endif  // HAVE_CONFIG_H
+
 // Workaround to allow 32/64 bit conversion
 // without running into strict aliasing problems.
 union datacast_t {
@@ -131,8 +127,8 @@ static inline void cpuset_set_ab(cpu_set_t *cpuset, int a, int b) {
     CPU_SET(i, cpuset);
 }
 
-static inline string cpuset_format(const cpu_set_t *cpuset) {
-  string format;
+static inline std::string cpuset_format(const cpu_set_t *cpuset) {
+  std::string format;
   int digit = 0, last_non_zero_size = 1;
   for (int i = 0; i < CPU_SETSIZE; ++i) {
     if (CPU_ISSET(i, cpuset)) {
@@ -178,7 +174,7 @@ inline bool sat_sleep(time_t seconds) {
 //
 // Args:
 //   error_num: an errno error code
-inline string ErrorString(int error_num) {
+inline std::string ErrorString(int error_num) {
   char buf[256];
 #ifdef STRERROR_R_CHAR_P
   return string(strerror_r(error_num, buf, sizeof buf));
@@ -186,7 +182,7 @@ inline string ErrorString(int error_num) {
   if (strerror_r(error_num, buf, sizeof buf))
     return "unknown failure";
   else
-    return string(buf);
+    return std::string(buf);
 #endif
 }
 

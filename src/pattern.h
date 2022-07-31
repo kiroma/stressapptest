@@ -76,7 +76,7 @@ class Pattern {
   int busshift_;        // Target data bus width.
   bool inverse_;        // Invert the data from the original pattern.
   AdlerChecksum *crc_;  // CRC of this pattern.
-  string name_;         // The human readable pattern name.
+  std::string name_;         // The human readable pattern name.
   int weight_;          // This is the likelihood that this
                         // pattern will be chosen.
   // We want to copy this!
@@ -86,8 +86,9 @@ class Pattern {
 // Object used to access global pattern list.
 class PatternList {
  public:
-  PatternList();
-  ~PatternList();
+  PatternList() = default;
+  PatternList(const PatternList&) = delete;
+  PatternList& operator=(const PatternList&) = delete;
   // Initialize pointers to global data patterns, and calculate CRC.
   int Initialize();
   int Destroy();
@@ -100,11 +101,10 @@ class PatternList {
   int Size() {return size_;}
 
  private:
-  vector<class Pattern> patterns_;
-  int weightcount_;  // Total count of pattern weights.
-  unsigned int size_;
-  int initialized_;
-  DISALLOW_COPY_AND_ASSIGN(PatternList);
+  std::vector<Pattern> patterns_;
+  int weightcount_ = 0;  // Total count of pattern weights.
+  unsigned int size_ = 0;
+  int initialized_ = 0;
 };
 
 // CrcIncrement allows an abstracted way to add a 32bit

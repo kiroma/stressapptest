@@ -20,13 +20,13 @@
 
 #include "os.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
 #include <linux/types.h>
 #include <malloc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -89,10 +89,8 @@ OsLayer::OsLayer() {
 
 // OsLayer cleanup.
 OsLayer::~OsLayer() {
-  if (error_diagnoser_)
-    delete error_diagnoser_;
-  if (clock_)
-    delete clock_;
+  delete error_diagnoser_;
+  delete clock_;
 }
 
 // OsLayer initialization.
@@ -156,7 +154,7 @@ uint64 OsLayer::VirtualToPhysical(void *vaddr) {
 
   if (lseek64(fd, off, SEEK_SET) != off || read(fd, &frame, 8) != 8) {
     int err = errno;
-    string errtxt = ErrorString(err);
+    std::string errtxt = ErrorString(err);
     logprintf(0, "Process Error: failed to access %s with errno %d (%s)\n",
               kPagemapPath, err, errtxt.c_str());
     if (fd >= 0)
@@ -179,14 +177,14 @@ uint64 OsLayer::VirtualToPhysical(void *vaddr) {
 }
 
 // Returns the HD device that contains this file.
-string OsLayer::FindFileDevice(string filename) {
+std::string OsLayer::FindFileDevice(std::string filename) {
   return "hdUnknown";
 }
 
 // Returns a list of locations corresponding to HD devices.
-list<string> OsLayer::FindFileDevices() {
+std::list<std::string> OsLayer::FindFileDevices() {
   // No autodetection on unknown systems.
-  list<string> locations;
+  std::list<std::string> locations;
   return locations;
 }
 
@@ -239,7 +237,7 @@ bool OsLayer::FlushPageCache(void) {
   int dcfile = open(drop_caches_file, O_WRONLY);
   if (dcfile < 0) {
     int err = errno;
-    string errtxt = ErrorString(err);
+    std::string errtxt = ErrorString(err);
     logprintf(3, "Log: failed to open %s - err %d (%s)\n",
               drop_caches_file, err, errtxt.c_str());
     return false;
@@ -250,7 +248,7 @@ bool OsLayer::FlushPageCache(void) {
 
   if (bytes_written != 1) {
     int err = errno;
-    string errtxt = ErrorString(err);
+    std::string errtxt = ErrorString(err);
     logprintf(3, "Log: failed to write %s - err %d (%s)\n",
               drop_caches_file, err, errtxt.c_str());
     return false;
@@ -294,7 +292,7 @@ int OsLayer::FindDimm(uint64 addr, char *buf, int len) {
   // Find channel by XORing address bits in channel_hash mask.
   uint32 low = static_cast<uint32>(addr & channel_hash_);
   uint32 high = static_cast<uint32>((addr & channel_hash_) >> 32);
-  vector<string>& channel = (*channels_)[
+  std::vector<std::string>& channel = (*channels_)[
       __builtin_parity(high) ^ __builtin_parity(low)];
 
   // Find dram chip by finding which byte within the channel
@@ -303,7 +301,7 @@ int OsLayer::FindDimm(uint64 addr, char *buf, int len) {
   // with x4 dram.
   int chip = (addr % (channel_width_ / 8)) /
              ((channel_width_ / 8) / channel.size());
-  string name = channel[chip];
+  std::string name = channel[chip];
   snprintf(buf, len, "%s", name.c_str());
   return 1;
 }
@@ -351,11 +349,11 @@ cpu_set_t *OsLayer::FindCoreMask(int32 region) {
 }
 
 // Return cores associated with a given region in hex string.
-string OsLayer::FindCoreMaskFormat(int32 region) {
+std::string OsLayer::FindCoreMaskFormat(int32 region) {
   cpu_set_t* mask = FindCoreMask(region);
-  string format = cpuset_format(mask);
+  std::string format = cpuset_format(mask);
   if (format.size() < 8)
-    format = string(8 - format.size(), '0') + format;
+    format = std::string(8 - format.size(), '0') + format;
   return format;
 }
 
@@ -715,7 +713,7 @@ void *OsLayer::PrepareTestMem(uint64 offset, uint64 length) {
                      shmid_, offset);
 #endif
     if (mapping == MAP_FAILED) {
-      string errtxt = ErrorString(errno);
+      std::string errtxt = ErrorString(errno);
       logprintf(0, "Process Error: PrepareTestMem mmap64(%llx, %llx) failed. "
                    "error: %s.\n",
                 offset, length, errtxt.c_str());
@@ -732,7 +730,7 @@ void OsLayer::ReleaseTestMem(void *addr, uint64 offset, uint64 length) {
   if (dynamic_mapped_shmem_) {
     int retval = munmap(addr, length);
     if (retval == -1) {
-      string errtxt = ErrorString(errno);
+      std::string errtxt = ErrorString(errno);
       logprintf(0, "Process Error: ReleaseTestMem munmap(%p, %llx) failed. "
                    "error: %s.\n",
                 addr, length, errtxt.c_str());

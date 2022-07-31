@@ -63,7 +63,11 @@ static inline void init_pe(struct page_entry *pe) {
 class PageEntryQueue {
  public:
   explicit PageEntryQueue(uint64 queuesize);
+  PageEntryQueue(const PageEntryQueue&) = delete;
+  PageEntryQueue(PageEntryQueue&&) = delete;
   ~PageEntryQueue();
+  PageEntryQueue& operator=(const PageEntryQueue&) = delete;
+  PageEntryQueue& operator=(PageEntryQueue&&) = delete;
 
   // Push a page onto the list.
   int Push(struct page_entry *pe);
@@ -78,8 +82,6 @@ class PageEntryQueue {
   int64 pushed_;  // Number of pages pushed, total.
   int64 popped_;  // Number of pages popped, total.
   pthread_mutex_t q_mutex_;
-
-  DISALLOW_COPY_AND_ASSIGN(PageEntryQueue);
 };
 
 

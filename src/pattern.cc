@@ -276,8 +276,7 @@ int Pattern::CalculateCrc() {
   if (crc_ != NULL) {
     delete crc_;
   }
-  crc_ = new AdlerChecksum();
-  crc_->Set(a1, a2, b1, b2);
+  crc_ = new AdlerChecksum{a1, a2, b1, b2};
   return 0;
 }
 
@@ -321,18 +320,6 @@ int Pattern::Initialize(const struct PatternData &pattern_init,
   CalculateCrc();
 
   return result;
-}
-
-
-PatternList::PatternList() {
-  size_= 0;
-  initialized_ = 0;
-}
-
-PatternList::~PatternList() {
-  if (initialized_) {
-    Destroy();
-  }
 }
 
 // Fill in the class with references to the static data patterns

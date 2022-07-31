@@ -181,7 +181,7 @@ void DiskBlockTable::SetParameters(int sector_size,
                                    int write_block_size,
                                    int64 device_sectors,
                                    int64 segment_size,
-                                   const string& device_name) {
+                                   const std::string& device_name) {
   sat_assert(size_ == 0);
   pthread_mutex_lock(&parameter_mutex_);
   sector_size_ = sector_size;

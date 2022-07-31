@@ -79,8 +79,6 @@ class WorkerStatus {
   // Methods for the control thread.
   //--------------------------------
 
-  WorkerStatus() : num_workers_(0), status_(RUN) {}
-
   // Called by the control thread to increase the worker count.  Must be called
   // before Initialize().  The worker count is 0 upon object initialization.
   void AddWorkers(int num_new_workers) {
@@ -184,17 +182,15 @@ class WorkerStatus {
   }
 
   pthread_mutex_t num_workers_mutex_;
-  int num_workers_;
+  int num_workers_ = 0;
 
   pthread_rwlock_t status_rwlock_;
-  Status status_;
+  Status status_ = RUN;
 
 #ifdef HAVE_PTHREAD_BARRIERS
   pthread_barrier_t pause_barrier_;
   pthread_rwlock_t pause_rwlock_;  // Guards pause_barrier_
 #endif
-
-  DISALLOW_COPY_AND_ASSIGN(WorkerStatus);
 };
 
 
@@ -210,7 +206,11 @@ class WorkerThread {
     High,
   };
   WorkerThread();
+  WorkerThread(const WorkerThread&) = delete;
+  WorkerThread(WorkerThread&&) = delete;
   virtual ~WorkerThread();
+  WorkerThread& operator=(const WorkerThread&) = delete;
+  WorkerThread& operator=(WorkerThread&&) = delete;
 
   // Initialize values and thread ID number.
   virtual void InitThread(int thread_num_init,
@@ -284,7 +284,7 @@ class WorkerThread {
   // Returns CPU mask of CPUs this thread is bound to,
   bool CurrentCpus(cpu_set_t *cpuset);
   // Returns Current Cpus mask as string.
-  string CurrentCpusFormat() {
+  std::string CurrentCpusFormat() {
     cpu_set_t current_cpus;
     CurrentCpus(&current_cpus);
     return cpuset_format(&current_cpus);
@@ -401,14 +401,13 @@ class WorkerThread {
 
  private:
   WorkerStatus *worker_status_;
-
-  DISALLOW_COPY_AND_ASSIGN(WorkerThread);
 };
 
 // Worker thread to perform File IO.
 class FileThread : public WorkerThread {
  public:
   FileThread();
+
   // Set filename to use for file IO.
   virtual void SetFile(const char *filename_init);
   virtual bool Work();
@@ -468,8 +467,8 @@ class FileThread : public WorkerThread {
 
   struct PageRec *page_recs_;          // Array of page records.
   int crc_page_;                        // Page currently being CRC checked.
-  string filename_;                     // Name of file to access.
-  string devicename_;                   // Name of device file is on.
+  std::string filename_;                     // Name of file to access.
+  std::string devicename_;                   // Name of device file is on.
 
   bool page_io_;                        // Use page pool for IO.
   void *local_page_;                   // malloc'd page fon non-pool IO.
@@ -483,8 +482,6 @@ class FileThread : public WorkerThread {
     volatile uint8 pass;
     char pad[512-4];
   };
-
-  DISALLOW_COPY_AND_ASSIGN(FileThread);
 };
 
 
@@ -510,9 +507,6 @@ class NetworkThread : public WorkerThread {
   virtual bool ReceivePage(int sock, struct page_entry *dst);
   char ipaddr_[256];
   int sock_;
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(NetworkThread);
 };
 
 // Worker thread to reflect Network IO.
@@ -525,9 +519,6 @@ class NetworkSlaveThread : public NetworkThread {
 
  protected:
   virtual bool IsNetworkStopSet();
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(NetworkSlaveThread);
 };
 
 // Worker thread to detect incoming Network IO.
@@ -548,10 +539,8 @@ class NetworkListenThread : public NetworkThread {
     WorkerStatus status;
     NetworkSlaveThread thread;
   };
-  typedef vector<ChildWorker*> ChildVector;
+  typedef std::vector<ChildWorker*> ChildVector;
   ChildVector child_workers_;
-
-  DISALLOW_COPY_AND_ASSIGN(NetworkListenThread);
 };
 
 // Worker thread to perform Memory Copy.
@@ -562,15 +551,11 @@ class CopyThread : public WorkerThread {
   // Calculate worker thread specific bandwidth.
   virtual float GetMemoryCopiedData()
     {return GetCopiedData()*2;}
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(CopyThread);
 };
 
 // Worker thread to perform Memory Invert.
 class InvertThread : public WorkerThread {
  public:
-  InvertThread() {}
   virtual bool Work();
   // Calculate worker thread specific bandwidth.
   virtual float GetMemoryCopiedData()
@@ -579,7 +564,6 @@ class InvertThread : public WorkerThread {
  private:
   virtual int InvertPageUp(struct page_entry *srcpe);
   virtual int InvertPageDown(struct page_entry *srcpe);
-  DISALLOW_COPY_AND_ASSIGN(InvertThread);
 };
 
 // Worker thread to fill blank pages on startup.
@@ -594,7 +578,6 @@ class FillThread : public WorkerThread {
   // Fill a page with the data pattern in pe->pattern.
   virtual bool FillPageRandom(struct page_entry *pe);
   int64 num_pages_to_fill_;
-  DISALLOW_COPY_AND_ASSIGN(FillThread);
 };
 
 // Worker thread to verify page data matches pattern data.
@@ -607,9 +590,6 @@ class CheckThread : public WorkerThread {
   // Calculate worker thread specific bandwidth.
   virtual float GetMemoryCopiedData()
     {return GetCopiedData();}
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(CheckThread);
 };
 
 
@@ -619,9 +599,6 @@ class ErrorPollThread : public WorkerThread {
  public:
   ErrorPollThread() {}
   virtual bool Work();
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(ErrorPollThread);
 };
 
 // Computation intensive worker thread to stress CPU.
@@ -629,9 +606,6 @@ class CpuStressThread : public WorkerThread {
  public:
   CpuStressThread() {}
   virtual bool Work();
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(CpuStressThread);
 };
 
 // Worker thread that tests the correctness of the
@@ -663,9 +637,6 @@ class CpuCacheCoherencyThread : public WorkerThread {
   int cc_thread_count_;     // Total number of threads being run, for
                             // calculations mixing up cache line access.
   int cc_inc_count_;        // Number of times to increment the counter.
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(CpuCacheCoherencyThread);
 };
 
 // Worker thread to perform disk test.
@@ -759,7 +730,7 @@ class DiskThread : public WorkerThread {
   int64 write_timeout_;       // Maximum time a write can take before a timeout
                               // and the aborting of the write operation.
 
-  string device_name_;        // Name of device file to access.
+  std::string device_name_;        // Name of device file to access.
   int64 device_sectors_;      // Number of sectors on the device.
 
   std::queue<BlockData*> in_flight_sectors_;   // Queue of sectors written but
@@ -773,8 +744,6 @@ class DiskThread : public WorkerThread {
   DiskBlockTable *block_table_;  // Disk Block Table, shared by all disk
                                  // threads that read / write at the same
                                  // device
-
-  DISALLOW_COPY_AND_ASSIGN(DiskThread);
 };
 
 class RandomDiskThread : public DiskThread {
@@ -783,8 +752,6 @@ class RandomDiskThread : public DiskThread {
   virtual ~RandomDiskThread();
   // Main work loop.
   virtual bool DoWork(int fd);
- protected:
-  DISALLOW_COPY_AND_ASSIGN(RandomDiskThread);
 };
 
 // Worker thread to perform checks in a specific memory region.
@@ -801,7 +768,7 @@ class MemoryRegionThread : public WorkerThread {
     {return GetCopiedData();}
   virtual float GetDeviceCopiedData()
     {return GetCopiedData() * 2;}
-  void SetIdentifier(string identifier) {
+  void SetIdentifier(std::string identifier) {
     identifier_ = identifier;
   }
 
@@ -811,13 +778,10 @@ class MemoryRegionThread : public WorkerThread {
   PageEntryQueue *pages_;
   bool error_injection_;
   int phase_;
-  string identifier_;
+  std::string identifier_;
   static const int kPhaseNoPhase = 0;
   static const int kPhaseCopy = 1;
   static const int kPhaseCheck = 2;
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(MemoryRegionThread);
 };
 
 // Worker thread to check that the frequency of every cpu does not go below a
@@ -892,8 +856,6 @@ class CpuFreqThread : public WorkerThread {
 
   // Precomputed value to add to the frequency to do the rounding.
   double round_value_;
-
-  DISALLOW_COPY_AND_ASSIGN(CpuFreqThread);
 };
 
 #endif  // STRESSAPPTEST_WORKER_H_

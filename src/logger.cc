@@ -15,9 +15,9 @@
 #include "logger.h"
 
 #include <pthread.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <time.h>
+#include <cstdarg>
+#include <cstdio>
+#include <ctime>
 #include <unistd.h>
 
 #include <string>
@@ -53,7 +53,7 @@ void Logger::VLogF(int priority, const char *format, va_list args) {
     length = sizeof(buffer);
     buffer[sizeof(buffer) - 1] = '\n';
   }
-  QueueLogLine(new string(buffer, length));
+  QueueLogLine(new std::string(buffer, length));
 }
 
 void Logger::StartThread() {
@@ -98,7 +98,7 @@ Logger::~Logger() {
   LOGGER_ASSERT(0 == pthread_cond_destroy(&full_queue_cond_));
 }
 
-void Logger::QueueLogLine(string *line) {
+void Logger::QueueLogLine(std::string *line) {
   LOGGER_ASSERT(line != NULL);
   LOGGER_ASSERT(0 == pthread_mutex_lock(&queued_lines_mutex_));
   if (thread_running_) {
@@ -116,7 +116,7 @@ void Logger::QueueLogLine(string *line) {
   LOGGER_ASSERT(0 == pthread_mutex_unlock(&queued_lines_mutex_));
 }
 
-void Logger::WriteAndDeleteLogLine(string *line) {
+void Logger::WriteAndDeleteLogLine(std::string *line) {
   LOGGER_ASSERT(line != NULL);
   ssize_t bytes_written;
   if (log_fd_ >= 0) {
@@ -135,7 +135,7 @@ void *Logger::StartRoutine(void *ptr) {
 }
 
 void Logger::ThreadMain() {
-  vector<string*> local_queue;
+  std::vector<std::string*> local_queue;
   LOGGER_ASSERT(0 == pthread_mutex_lock(&queued_lines_mutex_));
 
   for (;;) {
@@ -155,7 +155,7 @@ void Logger::ThreadMain() {
 
     // Unlock while we process our local queue.
     LOGGER_ASSERT(0 == pthread_mutex_unlock(&queued_lines_mutex_));
-    for (vector<string*>::const_iterator it = local_queue.begin();
+    for (std::vector<std::string*>::const_iterator it = local_queue.begin();
          it != local_queue.end(); ++it) {
       if (*it == NULL) {
         // NULL is guaranteed to be at the end.

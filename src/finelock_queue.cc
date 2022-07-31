@@ -200,7 +200,7 @@ OsLayer *g_os;
 FineLockPEQueue *g_fpqueue = 0;
 
 // Global callback to hook into Os object.
-bool err_log_callback(uint64 paddr, string *buf) {
+bool err_log_callback(uint64 paddr, std::string *buf) {
   if (g_fpqueue) {
     return g_fpqueue->ErrorLogCallback(paddr, buf);
   }
@@ -220,7 +220,7 @@ OsLayer::ErrCallback FineLockPEQueue::get_err_log_callback() {
 
 // This call is used to export last transaction info on a particular physical
 // address.
-bool FineLockPEQueue::ErrorLogCallback(uint64 paddr, string *message) {
+bool FineLockPEQueue::ErrorLogCallback(uint64 paddr, std::string *message) {
   struct page_entry pe;
   OsLayer *os = g_os;
   sat_assert(g_os);

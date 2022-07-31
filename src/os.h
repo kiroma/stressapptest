@@ -52,7 +52,7 @@ struct PCIDevice {
   uint64 size[6];
 };
 
-typedef vector<PCIDevice*> PCIDevices;
+typedef std::vector<PCIDevice*> PCIDevices;
 
 class ErrorDiag;
 
@@ -62,7 +62,11 @@ class Clock;
 class OsLayer {
  public:
   OsLayer();
+  OsLayer(const OsLayer&) = delete;
+  OsLayer(OsLayer&&) = delete;
   virtual ~OsLayer();
+  OsLayer& operator=(const OsLayer&) = delete;
+  OsLayer& operator=(OsLayer&&) = delete;
 
   // Set the minimum amount of hugepages that should be available for testing.
   // Must be set before Initialize().
@@ -79,7 +83,7 @@ class OsLayer {
 
   // Set parameters needed to translate physical address to memory module.
   void SetDramMappingParams(uintptr_t channel_hash, int channel_width,
-                            vector< vector<string> > *channels) {
+                            std::vector< std::vector<std::string> > *channels) {
     channel_hash_ = channel_hash;
     channel_width_ = channel_width;
     channels_ = channels;
@@ -109,13 +113,13 @@ class OsLayer {
   // Find cpu cores associated with a region. Either NUMA or arbitrary.
   virtual cpu_set_t *FindCoreMask(int32 region);
   // Return cpu cores associated with a region in a hex string.
-  virtual string FindCoreMaskFormat(int32 region);
+  virtual std::string FindCoreMaskFormat(int32 region);
 
   // Returns the HD device that contains this file.
-  virtual string FindFileDevice(string filename);
+  virtual std::string FindFileDevice(std::string filename);
 
   // Returns a list of paths coresponding to HD devices found on this machine.
-  virtual list<string> FindFileDevices();
+  virtual std::list<std::string> FindFileDevices();
 
   // Polls for errors. This implementation is optional.
   // This will poll once for errors and return zero iff no errors were found.
@@ -360,7 +364,7 @@ class OsLayer {
   // app-specific info about the last error location.
   // This call back is called with a physical address, and the app can fill in
   // the most recent transaction that occurred at that address.
-  typedef bool (*ErrCallback)(uint64 paddr, string *buf);
+  typedef bool (*ErrCallback)(uint64 paddr, std::string *buf);
   void set_err_log_callback(
     ErrCallback err_log_callback) {
     err_log_callback_ = err_log_callback;
@@ -389,7 +393,7 @@ class OsLayer {
   bool  dynamic_mapped_shmem_;   // Conserve virtual address space.
   bool  mmapped_allocation_;     // Was memory allocated using mmap()?
   int   shmid_;                  // Handle to shmem
-  vector< vector<string> > *channels_;  // Memory module names per channel.
+  std::vector< std::vector<std::string> > *channels_;  // Memory module names per channel.
   uint64 channel_hash_;          // Mask of address bits XORed for channel.
   int channel_width_;            // Channel width in bits.
 
@@ -406,8 +410,8 @@ class OsLayer {
 
   time_t time_initialized_;      // Start time of test.
 
-  vector<cpu_set_t> cpu_sets_;   // Cache for cpu masks.
-  vector<bool> cpu_sets_valid_;  // If the cpu mask cache is valid.
+  std::vector<cpu_set_t> cpu_sets_;   // Cache for cpu masks.
+  std::vector<bool> cpu_sets_valid_;  // If the cpu mask cache is valid.
 
   // Get file descriptor for dev msr.
   virtual int OpenMSR(uint32 core, uint32 address);
@@ -420,9 +424,6 @@ class OsLayer {
 
   // Object to wrap the time function.
   Clock *clock_;
-
- private:
-  DISALLOW_COPY_AND_ASSIGN(OsLayer);
 };
 
 // Selects and returns the proper OS and hardware interface.  Does not call

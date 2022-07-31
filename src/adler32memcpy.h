@@ -16,26 +16,25 @@
 #define STRESSAPPTEST_ADLER32MEMCPY_H_
 
 #include <string>
+#include <array>
 #include "sattypes.h"
 
 // Encapsulation for Adler checksum. Please see adler32memcpy.cc for more
 // detail on the adler checksum algorithm.
-class AdlerChecksum {
- public:
-  AdlerChecksum() {}
-  ~AdlerChecksum() {}
-  // Returns true if the checksums are equal.
-  bool Equals(const AdlerChecksum &other) const;
+struct AdlerChecksum {
+  bool operator==(const AdlerChecksum& other) const
+  {
+    return a == other.a && b == other.b;
+  }
+  bool operator!=(const AdlerChecksum& other) const
+  {
+    return a != other.a || b != other.b;
+  }
   // Returns string representation of the Adler checksum
-  string ToHexString() const;
-  // Sets components of the Adler checksum.
-  void Set(uint64 a1, uint64 a2, uint64 b1, uint64 b2);
-
- private:
+  std::string ToHexString() const;
   // Components of Adler checksum.
-  uint64 a1_, a2_, b1_, b2_;
-
-  DISALLOW_COPY_AND_ASSIGN(AdlerChecksum);
+  std::array<uint64, 2> a {1, 1};
+  std::array<uint64, 2> b {0, 0};
 };
 
 // Calculates Adler checksum for supplied data.

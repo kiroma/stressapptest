@@ -16,7 +16,7 @@
 #define STRESSAPPTEST_LOGGER_H_
 
 #include <pthread.h>
-#include <stdarg.h>
+#include <cstdarg>
 
 #include <string>
 #include <vector>
@@ -109,6 +109,11 @@ class Logger {
   // before this returns.  Waits for the thread to finish before returning.
   void StopThread();
 
+  Logger(const Logger&) = delete;
+  Logger(Logger&&) = delete;
+  Logger& operator=(const Logger&) = delete;
+  Logger& operator=(Logger&&) = delete;
+
  protected:
   Logger();
 
@@ -117,11 +122,11 @@ class Logger {
  private:
   // Args:
   //   line: Must be non-NULL.  This function takes ownership of it.
-  void QueueLogLine(string *line);
+  void QueueLogLine(std::string *line);
 
   // Args:
   //   line: Must be non-NULL.  This function takes ownership of it.
-  void WriteAndDeleteLogLine(string *line);
+  void WriteAndDeleteLogLine(std::string *line);
 
   // Callback for pthread_create(3).
   static void *StartRoutine(void *ptr);
@@ -134,7 +139,7 @@ class Logger {
   int log_fd_;
   bool thread_running_;
   bool log_timestamps_;
-  vector<string*> queued_lines_;
+  std::vector<std::string*> queued_lines_;
   // This doubles as a mutex for log_fd_ when the logging thread is not running.
   pthread_mutex_t queued_lines_mutex_;
   // Lets the logging thread know that the queue is no longer empty.
@@ -142,8 +147,6 @@ class Logger {
   // Lets the threads blocked on the queue having reached kMaxQueueSize know
   // that the queue has been emptied.
   pthread_cond_t full_queue_cond_;
-
-  DISALLOW_COPY_AND_ASSIGN(Logger);
 };
 
 #endif  // STRESSAPPTEST_LOGGER_H_

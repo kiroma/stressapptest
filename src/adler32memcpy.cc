@@ -61,25 +61,12 @@
 // number when it is just about to overflow but that would be a very costly
 // exercise)
 
-// Returns true if the checksums are equal.
-bool AdlerChecksum::Equals(const AdlerChecksum &other) const {
-  return ( (a1_ == other.a1_) && (a2_ == other.a2_) &&
-           (b1_ == other.b1_) && (b2_ == other.b2_) );
-}
 
 // Returns string representation of the Adler checksum.
-string AdlerChecksum::ToHexString() const {
+std::string AdlerChecksum::ToHexString() const {
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "%016llx %016llx %016llx %016llx", a1_, a2_, b1_, b2_);
-  return string(buffer);
-}
-
-// Sets components of the Adler checksum.
-void AdlerChecksum::Set(uint64 a1, uint64 a2, uint64 b1, uint64 b2) {
-  a1_ = a1;
-  a2_ = a2;
-  b1_ = b1;
-  b2_ = b2;
+  snprintf(buffer, sizeof(buffer), "%016llx %016llx %016llx %016llx", a[0], a[1], b[0], b[1]);
+  return std::string(buffer);
 }
 
 // Calculates Adler checksum for supplied data.
@@ -116,7 +103,7 @@ bool CalculateAdlerChecksum(uint64 *data64, unsigned int size_in_bytes,
     b2 = b2 + a2;
     i++;
   }
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = {a1, a2, b1, b2};
   return true;
 }
 
@@ -156,7 +143,7 @@ bool AdlerMemcpyC(uint64 *dstmem64, uint64 *srcmem64,
     dstmem64[i] = data.l64;
     i++;
   }
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = AdlerChecksum{a1, a2, b1, b2};
   return true;
 }
 
@@ -218,7 +205,7 @@ bool AdlerMemcpyWarmC(uint64 *dstmem64, uint64 *srcmem64,
     printf("Log: This will probably never happen.\n");
   }
 
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = AdlerChecksum{a1, a2, b1, b2};
   return true;
 }
 
@@ -391,8 +378,8 @@ bool AdlerMemcpyAsm(uint64 *dstmem64, uint64 *srcmem64,
   );  // asm.
 
   if (checksum != NULL) {
-    checksum->Set(checksum_arr[0], checksum_arr[1],
-                  checksum_arr[2], checksum_arr[3]);
+    *checksum = AdlerChecksum{checksum_arr[0], checksum_arr[1],
+                              checksum_arr[2], checksum_arr[3]};
   }
 
   // Everything went fine, so return true (this does not mean

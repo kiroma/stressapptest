@@ -33,7 +33,11 @@
 class FineLockPEQueue {
  public:
   FineLockPEQueue(uint64 queuesize, int64 pagesize);
+  FineLockPEQueue(const FineLockPEQueue&) = delete;
+  FineLockPEQueue(FineLockPEQueue&&) = delete;
   ~FineLockPEQueue();
+  FineLockPEQueue& operator=(const FineLockPEQueue&) = delete;
+  FineLockPEQueue& operator=(FineLockPEQueue&&) = delete;
 
   // Put and get functions for page entries.
   bool GetEmpty(struct page_entry *pe);
@@ -49,7 +53,7 @@ class FineLockPEQueue {
   bool GetPageFromPhysical(uint64 paddr, struct page_entry *pe);
   void set_os(OsLayer *os);
   OsLayer::ErrCallback get_err_log_callback();
-  bool ErrorLogCallback(uint64 paddr, string *buf);
+  bool ErrorLogCallback(uint64 paddr, std::string *buf);
 
  private:
   // Not that much blocking random number generator.
@@ -111,8 +115,6 @@ class FineLockPEQueue {
 
   uint64 rand_seed_[4];          // Random number state for 4 generators.
   pthread_mutex_t randlocks_[4];  // Per-random-generator locks.
-
-  DISALLOW_COPY_AND_ASSIGN(FineLockPEQueue);
 };
 
 #endif  // STRESSAPPTEST_FINELOCK_QUEUE_H_

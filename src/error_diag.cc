@@ -26,7 +26,7 @@
 
 
 // DeviceTree constructor.
-DeviceTree::DeviceTree(string name)
+DeviceTree::DeviceTree(std::string name)
   : parent_(0), name_(name) {
   pthread_mutex_init(&device_tree_mutex_, NULL);
 }
@@ -34,7 +34,7 @@ DeviceTree::DeviceTree(string name)
 // DeviceTree destructor.
 DeviceTree::~DeviceTree() {
   // Deallocate subtree devices.
-  for (std::map<string, DeviceTree*>::iterator itr = subdevices_.begin();
+  for (std::map<std::string, DeviceTree*>::iterator itr = subdevices_.begin();
       itr != subdevices_.end();
       ++itr) {
     delete itr->second;
@@ -50,7 +50,7 @@ DeviceTree::~DeviceTree() {
 
 // Atomically find named device in sub device tree.
 // Returns 0 if not found
-DeviceTree *DeviceTree::FindInSubTree(string name) {
+DeviceTree *DeviceTree::FindInSubTree(std::string name) {
   DeviceTree *ret;
   pthread_mutex_lock(&device_tree_mutex_);
   ret = UnlockedFindInSubTree(name);
@@ -60,13 +60,13 @@ DeviceTree *DeviceTree::FindInSubTree(string name) {
 
 // Find named device in sub device tree (Non-atomic).
 // Returns 0 if not found
-DeviceTree *DeviceTree::UnlockedFindInSubTree(string name) {
-  std::map<string, DeviceTree*>::iterator itr = subdevices_.find(name);
+DeviceTree *DeviceTree::UnlockedFindInSubTree(std::string name) {
+  std::map<std::string, DeviceTree*>::iterator itr = subdevices_.find(name);
   if (itr != subdevices_.end()) {
     return itr->second;
   } else {
     // Search sub-tree.
-    for (std::map<string, DeviceTree*>::iterator itr = subdevices_.begin();
+    for (std::map<std::string, DeviceTree*>::iterator itr = subdevices_.begin();
         itr != subdevices_.end();
         ++itr) {
       DeviceTree *result = itr->second->UnlockedFindInSubTree(name);
@@ -85,7 +85,7 @@ void DeviceTree::AddErrorInstance(ErrorInstance *error_instance) {
 }
 
 // Find or add queried device as necessary.
-DeviceTree *DeviceTree::FindOrAddDevice(string name) {
+DeviceTree *DeviceTree::FindOrAddDevice(std::string name) {
   // Assume named device does not exist and try to insert the device anyway.
   // No-op if named device already exists.
   InsertSubDevice(name);
@@ -94,8 +94,8 @@ DeviceTree *DeviceTree::FindOrAddDevice(string name) {
 }
 
 // Pretty prints device tree.
-void DeviceTree::PrettyPrint(string spacer) {
-  for (std::map<string, DeviceTree*>::iterator itr = subdevices_.begin();
+void DeviceTree::PrettyPrint(std::string spacer) {
+  for (std::map<std::string, DeviceTree*>::iterator itr = subdevices_.begin();
       itr != subdevices_.end();
       ++itr) {
     printf("%s%s\n", spacer.c_str(), itr->first.c_str());
@@ -105,7 +105,7 @@ void DeviceTree::PrettyPrint(string spacer) {
 
 // Atomically add sub device.
 // No-op if named device already exists.
-void DeviceTree::InsertSubDevice(string name) {
+void DeviceTree::InsertSubDevice(std::string name) {
   pthread_mutex_lock(&device_tree_mutex_);
   if (UnlockedFindInSubTree(name) != 0) {
     pthread_mutex_unlock(&device_tree_mutex_);
@@ -163,7 +163,7 @@ bool ErrorDiag::InitializeDeviceTree() {
 
 // Logs info about a CECC.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-int ErrorDiag::AddCeccError(string dimm_string) {
+int ErrorDiag::AddCeccError(std::string dimm_string) {
   DeviceTree *dimm_device = system_tree_root_->FindOrAddDevice(dimm_string);
   ECCErrorInstance *error = new ECCErrorInstance;
   if (!error)
@@ -175,7 +175,7 @@ int ErrorDiag::AddCeccError(string dimm_string) {
 
 // Logs info about a UECC.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-int ErrorDiag::AddUeccError(string dimm_string) {
+int ErrorDiag::AddUeccError(std::string dimm_string) {
   DeviceTree *dimm_device = system_tree_root_->FindOrAddDevice(dimm_string);
   ECCErrorInstance *error = new ECCErrorInstance;
   if (!error)
@@ -187,7 +187,7 @@ int ErrorDiag::AddUeccError(string dimm_string) {
 
 // Logs info about a miscompare.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-int ErrorDiag::AddMiscompareError(string dimm_string, uint64 addr, int count) {
+int ErrorDiag::AddMiscompareError(std::string dimm_string, uint64 addr, int count) {
   DeviceTree *dimm_device = system_tree_root_->FindOrAddDevice(dimm_string);
   MiscompareErrorInstance *error = new MiscompareErrorInstance;
   if (!error)
@@ -201,17 +201,17 @@ int ErrorDiag::AddMiscompareError(string dimm_string, uint64 addr, int count) {
 
 // Utility Function to translate a virtual address to DIMM number.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-string ErrorDiag::AddressToDimmString(OsLayer *os, void *addr, int offset) {
+std::string ErrorDiag::AddressToDimmString(OsLayer *os, void *addr, int offset) {
   char dimm_string[256] = "";
   char *vbyteaddr = reinterpret_cast<char*>(addr) + offset;
   uint64 paddr = os->VirtualToPhysical(vbyteaddr);
   os->FindDimm(paddr, dimm_string, sizeof(dimm_string));
-  return string(dimm_string);
+  return std::string(dimm_string);
 }
 
 // Info about a miscompare from a drive.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-int ErrorDiag::AddHDDMiscompareError(string devicename, int block, int offset,
+int ErrorDiag::AddHDDMiscompareError(std::string devicename, int block, int offset,
                                      void *src_addr, void *dst_addr) {
   bool mask_hdd_error = false;
 
@@ -224,8 +224,8 @@ int ErrorDiag::AddHDDMiscompareError(string devicename, int block, int offset,
   error->offset_ = offset;
   error->block_ = block;
 
-  string src_dimm = AddressToDimmString(os_, src_addr, offset);
-  string dst_dimm = AddressToDimmString(os_, dst_addr, offset);
+  std::string src_dimm = AddressToDimmString(os_, src_addr, offset);
+  std::string dst_dimm = AddressToDimmString(os_, dst_addr, offset);
 
   // DIMM name look up success
   if (src_dimm.compare("DIMM Unknown")) {
@@ -264,7 +264,7 @@ int ErrorDiag::AddHDDMiscompareError(string devicename, int block, int offset,
 
 // Info about a sector tag miscompare from a drive.
 // Returns -1 on error, 1 if diagnoser reports error externally; 0 otherwise.
-int ErrorDiag::AddHDDSectorTagError(string devicename, int block, int offset,
+int ErrorDiag::AddHDDSectorTagError(std::string devicename, int block, int offset,
                                     int sector, void *src_addr,
                                     void *dst_addr) {
   bool mask_hdd_error = false;
@@ -278,8 +278,8 @@ int ErrorDiag::AddHDDSectorTagError(string devicename, int block, int offset,
   error->sector_ = sector;
   error->block_ = block;
 
-  string src_dimm = AddressToDimmString(os_, src_addr, offset);
-  string dst_dimm = AddressToDimmString(os_, dst_addr, offset);
+  std::string src_dimm = AddressToDimmString(os_, src_addr, offset);
+  std::string dst_dimm = AddressToDimmString(os_, dst_addr, offset);
 
   // DIMM name look up success
   if (src_dimm.compare("DIMM Unknown")) {

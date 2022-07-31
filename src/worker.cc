@@ -723,7 +723,7 @@ int WorkerThread::CheckRegion(void *addr,
   int errors = 0;
   int overflowerrors = 0;  // Count of overflowed errors.
   bool page_error = false;
-  string errormessage("Hardware Error");
+  std::string errormessage("Hardware Error");
   struct ErrorRecord
     recorded[kErrorLimit];  // Queued errors for later printing.
 
@@ -918,7 +918,7 @@ int WorkerThread::CrcCheckPage(struct page_entry *srcpe) {
     }
 
     // If the CRC does not match, we'd better look closer.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcCheckPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n",
                 crc.ToHexString().c_str(),
@@ -1096,7 +1096,7 @@ bool WorkerThread::AdlerAddrMemcpyC(uint64 *dstmem64,
     dstmem64[i] = data.l64;
     i++;
   }
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = AdlerChecksum{a1, a2, b1, b2};
   return true;
 }
 
@@ -1200,7 +1200,7 @@ bool WorkerThread::AdlerAddrCrcC(uint64 *srcmem64,
     b2 = b2 + a2;
     i++;
   }
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = AdlerChecksum{a1, a2, b1, b2};
   return true;
 }
 
@@ -1231,7 +1231,7 @@ int WorkerThread::CrcCopyPage(struct page_entry *dstpe,
     }
 
     // Investigate miscompares.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcCopyPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n", crc.ToHexString().c_str(),
                 expectedcrc->ToHexString().c_str());
@@ -1387,7 +1387,7 @@ int WorkerThread::CrcWarmCopyPage(struct page_entry *dstpe,
     }
 
     // Investigate miscompares.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcWarmCopyPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n", crc.ToHexString().c_str(),
                 expectedcrc->ToHexString().c_str());
@@ -3564,7 +3564,7 @@ bool CpuFreqThread::Work() {
   bool valid;
   bool pass = true;
 
-  vector<CpuDataType> data[2];
+  std::vector<CpuDataType> data[2];
   data[0].resize(num_cpus_);
   data[1].resize(num_cpus_);
   while (IsReadyToRun(&paused)) {

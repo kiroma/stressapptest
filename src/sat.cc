@@ -121,8 +121,6 @@ bool Sat::CheckEnvironment() {
     bad_status();
     return false;
   }
-#elif !defined CHECKOPTS
-  #error Build system regression - COPTS disregarded.
 #endif
 
   // Check if the cpu frequency test is enabled and able to run.
@@ -159,12 +157,12 @@ bool Sat::CheckEnvironment() {
   // Autodetect file locations.
   if (findfiles_ && (file_threads_ == 0)) {
     // Get a space separated sting of disk locations.
-    list<string> locations = os_->FindFileDevices();
+    std::list<std::string> locations = os_->FindFileDevices();
 
     // Extract each one.
     while (!locations.empty()) {
       // Copy and remove the disk name.
-      string disk = locations.back();
+      std::string disk = locations.back();
       locations.pop_back();
 
       logprintf(12, "Log: disk at %s\n", disk.c_str());
@@ -941,7 +939,7 @@ bool Sat::ParseArgs(int argc, char **argv) {
       i++;
       if (i < argc) {
         disk_threads_++;
-        diskfilename_.push_back(string(argv[i]));
+        diskfilename_.push_back(std::string(argv[i]));
         blocktables_.push_back(new DiskBlockTable());
       }
       continue;
@@ -955,7 +953,7 @@ bool Sat::ParseArgs(int argc, char **argv) {
       i++;
       if (i < argc) {
         file_threads_++;
-        filename_.push_back(string(argv[i]));
+        filename_.push_back(std::string(argv[i]));
       }
       continue;
     }
@@ -965,7 +963,7 @@ bool Sat::ParseArgs(int argc, char **argv) {
       i++;
       if (i < argc) {
         net_threads_++;
-        ipaddrs_.push_back(string(argv[i]));
+        ipaddrs_.push_back(std::string(argv[i]));
       }
       continue;
     }
@@ -984,12 +982,12 @@ bool Sat::ParseArgs(int argc, char **argv) {
       i++;
       if (i < argc) {
         char *channel = argv[i];
-        channels_.push_back(vector<string>());
+        channels_.push_back(std::vector<std::string>());
         while (char* next = strchr(channel, ',')) {
-          channels_.back().push_back(string(channel, next - channel));
+          channels_.back().push_back(std::string(channel, next - channel));
           channel = next + 1;
         }
-        channels_.back().push_back(string(channel));
+        channels_.back().push_back(std::string(channel));
       }
       continue;
     }

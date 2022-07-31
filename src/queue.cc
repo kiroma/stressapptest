@@ -14,7 +14,7 @@
 
 // queue.cc : simple thread safe queue implementation
 
-#include <stdlib.h>
+#include <cstdlib>
 
 // This file must work with autoconf on its public version,
 // so these includes are correct.

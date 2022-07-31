@@ -38,7 +38,11 @@ class Sat {
   enum PageQueueType { SAT_ONELOCK, SAT_FINELOCK };
 
   Sat();
+  Sat(const Sat&) = delete;
+  Sat(Sat&&) = delete;
   virtual ~Sat();
+  Sat& operator=(const Sat&) = delete;
+  Sat& operator=(Sat&&) = delete;
 
   // Read configuration from arguments. Called first.
   bool ParseArgs(int argc, char **argv);
@@ -141,7 +145,7 @@ class Sat {
   int64 GetTotalErrorCount();
 
   // Command line arguments.
-  string cmdline_;
+  std::string cmdline_;
 
   // Memory and test configuration.
   int runtime_seconds_;               // Seconds to run.
@@ -157,7 +161,7 @@ class Sat {
   uint64 paddr_base_;                 // Physical address base.
   uint64 channel_hash_;               // Mask of address bits XORed for channel.
   int channel_width_;                 // Channel width in bits.
-  vector< vector<string> > channels_;  // Memory module names per channel.
+  std::vector<std::vector<std::string>> channels_;  // Memory module names per channel.
 
   // Control flags.
   volatile sig_atomic_t user_break_;  // User has signalled early exit.  Used as
@@ -238,11 +242,11 @@ class Sat {
   cc_cacheline_data *cc_cacheline_data_;  // The cache line sized datastructure
                                           // used by the ccache threads
                                           // (in worker.h).
-  vector<string> filename_;           // Filenames for file IO.
-  vector<string> ipaddrs_;            // Addresses for network IO.
-  vector<string> diskfilename_;       // Filename for disk IO device.
+  std::vector<std::string> filename_;           // Filenames for file IO.
+  std::vector<std::string> ipaddrs_;            // Addresses for network IO.
+  std::vector<std::string> diskfilename_;       // Filename for disk IO device.
   // Block table for IO device.
-  vector<DiskBlockTable*> blocktables_;
+  std::vector<DiskBlockTable*> blocktables_;
 
   int32 region_mask_;                 // Bitmask of available NUMA regions.
   int32 region_count_;                // Count of available NUMA regions.
@@ -275,8 +279,8 @@ class Sat {
   virtual void AcquireWorkerLock();
   virtual void ReleaseWorkerLock();
   pthread_mutex_t worker_lock_;  // Lock access to the worker thread structure.
-  typedef vector<WorkerThread*> WorkerVector;
-  typedef map<int, WorkerVector*> WorkerMap;
+  typedef std::vector<WorkerThread*> WorkerVector;
+  typedef std::map<int, WorkerVector*> WorkerMap;
   // Contains all worker threads.
   WorkerMap workers_map_;
   // Delay between power spikes.
@@ -320,8 +324,6 @@ class Sat {
   class PageEntryQueue *empty_;        // Page queue structure, free pages.
   class FineLockPEQueue *finelock_q_;  // Page queue with fine-grain locks
   Sat::PageQueueType pe_q_implementation_;   // Queue implementation switch
-
-  DISALLOW_COPY_AND_ASSIGN(Sat);
 };
 
 Sat *SatFactory();
