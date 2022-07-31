@@ -246,38 +246,28 @@ Pattern::~Pattern() {
 // Calculate CRC for this pattern. This must match
 // the CRC calculation in worker.cc.
 int Pattern::CalculateCrc() {
-  // TODO(johnhuang):
-  // Consider refactoring to the form:
-  // while (i < count) AdlerInc(uint64, uint64, AdlerChecksum*)
-  uint64 a1 = 1;
-  uint64 a2 = 1;
-  uint64 b1 = 0;
-  uint64 b2 = 0;
 
+  AdlerChecksum checksum{};
   // checksum is calculated using only the first 4096 bytes of data.
-  int i = 0;
   int blocksize = 4096;
-  int count = blocksize / sizeof i;
-  while (i < count) {
-    a1 += pattern(i);
-    b1 += a1;
-    i++;
-    a1 += pattern(i);
-    b1 += a1;
-    i++;
-
-    a2 += pattern(i);
-    b2 += a2;
-    i++;
-    a2 += pattern(i);
-    b2 += a2;
-    i++;
+  int count = blocksize / sizeof(int);
+  for(int i = 0; i < count; i += 8)
+  {
+    std::array<uint64, 4> data;
+    for(int j = 0; j < 4; ++j)
+    {
+      data[j] = uint64(pattern(i + (j * 2))) | uint64(pattern(i + (j * 2) + 1)) << 32;
+    }
+    checksum.increment(data);
   }
-  if (crc_ != NULL) {
-    delete crc_;
+  if(!crc_)
+  {
+    crc_ = new AdlerChecksum{checksum};
   }
-  crc_ = new AdlerChecksum();
-  crc_->Set(a1, a2, b1, b2);
+  else
+  {
+    *crc_ = checksum;
+  }
   return 0;
 }
 

@@ -16,26 +16,46 @@
 #define STRESSAPPTEST_ADLER32MEMCPY_H_
 
 #include <string>
+#include <array>
 #include "sattypes.h"
+
+template<size_t N, typename T>
+static std::array<T, N> extractData(const T* ptr) {
+  std::array<T, N> ret;
+  for(size_t i = 0; i < N; ++i) {
+    ret[i] = __builtin_nontemporal_load(ptr + i);
+  }
+  return ret;
+}
 
 // Encapsulation for Adler checksum. Please see adler32memcpy.cc for more
 // detail on the adler checksum algorithm.
 class AdlerChecksum {
  public:
-  AdlerChecksum() {}
-  ~AdlerChecksum() {}
   // Returns true if the checksums are equal.
-  bool Equals(const AdlerChecksum &other) const;
+   bool operator==(const AdlerChecksum& other) const
+   {
+     return a == other.a && b == other.b;
+   }
+   bool operator!=(const AdlerChecksum& other) const
+   {
+     return a != other.a || b != other.b;
+   }
   // Returns string representation of the Adler checksum
   string ToHexString() const;
-  // Sets components of the Adler checksum.
-  void Set(uint64 a1, uint64 a2, uint64 b1, uint64 b2);
-
- private:
+  void increment(std::array<uint64, 4> data)
+  {
+    for(int i = 0; i < 4; ++i)
+    {
+      a[i] += data[i] & ~std::uint32_t{0};
+      b[i] += a[i];
+      a[i] += data[i] >> 32;
+      b[i] += a[i];
+    }
+  }
   // Components of Adler checksum.
-  uint64 a1_, a2_, b1_, b2_;
-
-  DISALLOW_COPY_AND_ASSIGN(AdlerChecksum);
+  std::array<uint64, 4> a {1, 1, 1, 1};
+  std::array<uint64, 4> b {0, 0, 0, 0};
 };
 
 // Calculates Adler checksum for supplied data.

@@ -918,7 +918,7 @@ int WorkerThread::CrcCheckPage(struct page_entry *srcpe) {
     }
 
     // If the CRC does not match, we'd better look closer.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcCheckPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n",
                 crc.ToHexString().c_str(),
@@ -1038,8 +1038,7 @@ bool WorkerThread::AdlerAddrMemcpyC(uint64 *dstmem64,
                                     AdlerChecksum *checksum,
                                     struct page_entry *pe) {
   // Use this data wrapper to access memory with 64bit read/write.
-  datacast_t data;
-  datacast_t dstdata;
+  uint64 data;
   unsigned int count = size_in_bytes / sizeof(data);
 
   if (count > ((1U) << 19)) {
@@ -1047,56 +1046,30 @@ bool WorkerThread::AdlerAddrMemcpyC(uint64 *dstmem64,
     return false;
   }
 
-  uint64 a1 = 1;
-  uint64 a2 = 1;
-  uint64 b1 = 0;
-  uint64 b2 = 0;
+  AdlerChecksum ret;
 
   class Pattern *pattern = pe->pattern;
 
-  unsigned int i = 0;
-  while (i < count) {
-    // Process 64 bits at a time.
-    if ((i & 0x7) == 0) {
-      data.l64 = srcmem64[i];
-      dstdata.l64 = dstmem64[i];
-      uint64 src_tag = addr_to_tag(&srcmem64[i]);
-      uint64 dst_tag = addr_to_tag(&dstmem64[i]);
-      // Detect if tags have been corrupted.
-      if (data.l64 != src_tag)
-        ReportTagError(&srcmem64[i], data.l64, src_tag);
-      if (dstdata.l64 != dst_tag)
-        ReportTagError(&dstmem64[i], dstdata.l64, dst_tag);
-
-      data.l32.l = pattern->pattern(i << 1);
-      data.l32.h = pattern->pattern((i << 1) + 1);
-      a1 = a1 + data.l32.l;
-      b1 = b1 + a1;
-      a1 = a1 + data.l32.h;
-      b1 = b1 + a1;
-
-      data.l64  = dst_tag;
-      dstmem64[i] = data.l64;
-
-    } else {
-      data.l64 = srcmem64[i];
-      a1 = a1 + data.l32.l;
-      b1 = b1 + a1;
-      a1 = a1 + data.l32.h;
-      b1 = b1 + a1;
-      dstmem64[i] = data.l64;
+  for(unsigned int i = 0; i < count; i += 8) {
+    std::array<uint64, 8> buffer = extractData<8>(srcmem64 + i);
+    const uint64 dstdata = dstmem64[i];
+    uint64 src_tag = addr_to_tag(&srcmem64[i]);
+    uint64 dst_tag = addr_to_tag(&dstmem64[i]);
+    if(buffer[0] != src_tag) {
+      ReportTagError(&srcmem64[i], buffer[0], src_tag);
     }
-    i++;
-
-    data.l64 = srcmem64[i];
-    a2 = a2 + data.l32.l;
-    b2 = b2 + a2;
-    a2 = a2 + data.l32.h;
-    b2 = b2 + a2;
-    dstmem64[i] = data.l64;
-    i++;
+    if(dstdata != dst_tag) {
+      ReportTagError(&dstmem64[i], dstdata, dst_tag);
+    }
+    ret.increment({uint64(pattern->pattern(i << 1)) | uint64(pattern->pattern((i << 1) + 1)) << 32, buffer[1], buffer[2], buffer[3]});
+    ret.increment({buffer[4], buffer[5], buffer[6], buffer[7]});
+    buffer[0] = dst_tag;
+    for(int j = 0; j < 8; ++j) {
+      dstmem64[i + j] = buffer[j];
+    }
   }
-  checksum->Set(a1, a2, b1, b2);
+
+  *checksum = ret;
   return true;
 }
 
@@ -1153,7 +1126,7 @@ bool WorkerThread::AdlerAddrCrcC(uint64 *srcmem64,
                                  AdlerChecksum *checksum,
                                  struct page_entry *pe) {
   // Use this data wrapper to access memory with 64bit read/write.
-  datacast_t data;
+  uint64 data;
   unsigned int count = size_in_bytes / sizeof(data);
 
   if (count > ((1U) << 19)) {
@@ -1161,46 +1134,20 @@ bool WorkerThread::AdlerAddrCrcC(uint64 *srcmem64,
     return false;
   }
 
-  uint64 a1 = 1;
-  uint64 a2 = 1;
-  uint64 b1 = 0;
-  uint64 b2 = 0;
-
   class Pattern *pattern = pe->pattern;
 
-  unsigned int i = 0;
-  while (i < count) {
-    // Process 64 bits at a time.
-    if ((i & 0x7) == 0) {
-      data.l64 = srcmem64[i];
-      uint64 src_tag = addr_to_tag(&srcmem64[i]);
-      // Check that tags match expected.
-      if (data.l64 != src_tag)
-        ReportTagError(&srcmem64[i], data.l64, src_tag);
+  AdlerChecksum ret{};
 
-      data.l32.l = pattern->pattern(i << 1);
-      data.l32.h = pattern->pattern((i << 1) + 1);
-      a1 = a1 + data.l32.l;
-      b1 = b1 + a1;
-      a1 = a1 + data.l32.h;
-      b1 = b1 + a1;
-    } else {
-      data.l64 = srcmem64[i];
-      a1 = a1 + data.l32.l;
-      b1 = b1 + a1;
-      a1 = a1 + data.l32.h;
-      b1 = b1 + a1;
+  for(unsigned int i = 0; i < count; i += 8) {
+    const std::array<uint64, 8> buffer = extractData<8>(srcmem64 + i);
+    uint64 src_tag = addr_to_tag(&srcmem64[i]);
+    if(buffer[0] != src_tag) {
+      ReportTagError(&srcmem64[i], buffer[0], src_tag);
     }
-    i++;
-
-    data.l64 = srcmem64[i];
-    a2 = a2 + data.l32.l;
-    b2 = b2 + a2;
-    a2 = a2 + data.l32.h;
-    b2 = b2 + a2;
-    i++;
+    ret.increment({uint64(pattern->pattern(i << 1)) | uint64(pattern->pattern((i << 1) + 1)) << 32, buffer[1], buffer[2], buffer[3]});
+    ret.increment({buffer[4], buffer[5], buffer[6], buffer[7]});
   }
-  checksum->Set(a1, a2, b1, b2);
+  *checksum = ret;
   return true;
 }
 
@@ -1231,7 +1178,7 @@ int WorkerThread::CrcCopyPage(struct page_entry *dstpe,
     }
 
     // Investigate miscompares.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcCopyPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n", crc.ToHexString().c_str(),
                 expectedcrc->ToHexString().c_str());
@@ -1387,7 +1334,7 @@ int WorkerThread::CrcWarmCopyPage(struct page_entry *dstpe,
     }
 
     // Investigate miscompares.
-    if (!crc.Equals(*expectedcrc)) {
+    if (crc != *expectedcrc) {
       logprintf(11, "Log: CrcWarmCopyPage Falling through to slow compare, "
                 "CRC mismatch %s != %s\n", crc.ToHexString().c_str(),
                 expectedcrc->ToHexString().c_str());
